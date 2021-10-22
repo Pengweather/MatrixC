@@ -13,7 +13,6 @@ typedef struct mat
 	double **elem;
 	int row;
 	int col;
-
 } mat_t;
 
 /**
@@ -39,7 +38,6 @@ typedef enum
 	NOT_INVERTIBLE, // Matrix cannot be inverted.
 	OUT_OF_MEM,		// Out of memory.
 	NULL_IMPROPER	// A null is improperly used.
-
 } mat_op_stat_t;
 
 /**
