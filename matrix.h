@@ -68,4 +68,3 @@ void free_mat(mat_t *);
 void print_mat(mat_t *);
 
 #endif
-
