@@ -28,15 +28,9 @@ int main()
 	set_elem(A, 3, 0, 2);
 	set_elem(A, 3, 1, 1);
 
-	mat_t *result = eye_mat(5);
-	print_mat(inv(A));
-	printf("\n");
-
 	gauss_elim(&A);
 	print_mat(A);
 
-	free_mat(result);
 	free_mat(A);
-
 	return 0;
 }
