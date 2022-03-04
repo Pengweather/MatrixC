@@ -25,12 +25,15 @@ typedef enum
 typedef struct mat mat_t;
 
 mat_t *init(size_t, size_t);
+mat_t *eye_mat(size_t);
 mat_t *get_v_col(mat_t *, size_t);
 mat_t *get_v_row(mat_t *, size_t);
 mat_t *mat_transpose(mat_t *);
 mat_t *mat_mult(mat_t *, mat_t *);
 
 void   lu_fact(mat_t **, mat_t **, mat_t *);
+void   gauss_elim(mat_t **);
+
 mat_t *inv_u(mat_t *);
 mat_t *inv_l(mat_t *);
 mat_t *inv(mat_t *);
@@ -38,18 +41,6 @@ mat_t *inv(mat_t *);
 int set_elem(mat_t *m, size_t i, size_t j, double val);
 int zero_count_row(mat_t *m, size_t row);
 int zero_count_col(mat_t *m, size_t col);
-
-/**
- * Inform the status of the linear algebra functions such as whether or not it succeeded.
- */
-
-typedef enum
-{
-	NOT_SQUARE,	    // Matrix is not a square.
-	NOT_INVERTIBLE, // Matrix cannot be inverted.
-	MEM_ISSUE,		// Out of memory.
-	NULL_IMPROPER	// A null is improperly used.
-} mat_op_stat_t;
 
 /**
  * Cleanup

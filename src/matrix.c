@@ -41,6 +41,24 @@ mat_t *init(size_t row, size_t col)
 	return m;
 }
 
+mat_t *eye_mat(size_t n)
+{
+	mat_t *m = init(n, n);
+
+	if (!m || m->status != NO_MAT_ERROR)
+	{
+		free_mat(m);
+		return NULL;
+	}
+
+	for (int i = 0; i < n; i++)
+	{
+		m->elem[i][i] = 1;
+	}
+
+	return m;
+}
+
 mat_t *get_v_col(mat_t *m, size_t col)
 {
 	if (!m || m->status != NO_MAT_ERROR)	
@@ -69,8 +87,11 @@ mat_t *get_v_row(mat_t *m, size_t row)
 
 	mat_t *m_row = init(1, m->col);
 		
-	if (!m_row || m_row->status != NO_MAT_ERROR)	
+	if (!m_row || m_row->status != NO_MAT_ERROR)
+	{
+		free_mat(m_row);
 		return NULL;
+	}
 
 	if (row <= m->row)
 	{
@@ -117,13 +138,13 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 	if (!m_result || m_result->status != NO_MAT_ERROR)	
 		return NULL;
 
-	for (int i = 0; i < m_A->row; i++)
+	for (int i = 0; i < m_result->row; i++)
 	{
-		for (int j = 0; j < m_B->col; j++)
+		for (int j = 0; j < m_result->col; j++)
 		{
 			m_result->elem[i][j] = 0;
 
-			for (int k = 0; k < m_B->col; k++)
+			for (int k = 0; k < m_B->row; k++)
 			{
 				m_result->elem[i][j] += m_A->elem[i][k]*m_B->elem[k][j];
 			}
@@ -176,6 +197,29 @@ void lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 	}
 }
 
+void gauss_elim(mat_t **m)
+{
+	if (!*m || (*m)->status != NO_MAT_ERROR)
+		return;
+
+	for (int i = 0; i < (*m)->col; i++)
+	{
+		mat_t *rr_mat = eye_mat((*m)->row);
+		
+		for (int j = i + 1; j < (*m)->row; j++)
+		{ 
+			rr_mat->elem[j][i] = ((*m)->elem[j][i]) ? -1*(*m)->elem[j][i]/(*m)->elem[i][i] : 0;
+		}
+
+		mat_t *tmp_mat = mat_mult(rr_mat, *m);
+
+		free_mat(*m);
+		free_mat(rr_mat);
+
+		*m = tmp_mat;
+	}
+}
+
 mat_t *inv_u(mat_t *m_u)
 {
 	if (!m_u || 
@@ -186,7 +230,10 @@ mat_t *inv_u(mat_t *m_u)
 	mat_t *m_u_inv = init(m_u->col, m_u->col);
 	
 	if (!m_u_inv || m_u_inv->status != NO_MAT_ERROR)	
+	{
+		free_mat(m_u_inv);
 		return NULL;
+	}
 
 	for (int i = 0; i < m_u->col - 1; i++)
 	{
@@ -216,8 +263,11 @@ mat_t *inv_l(mat_t *m_l)
 
 	mat_t *m_l_inv = init(m_l->col, m_l->col);
 	
-	if (!m_l_inv || m_l_inv->status != NO_MAT_ERROR)	
+	if (!m_l_inv || m_l_inv->status != NO_MAT_ERROR)
+	{
+		free_mat(m_l_inv);	
 		return NULL;
+	}
 
 	for (int i = 0; i < m_l->col; i++)
 	{
@@ -285,7 +335,8 @@ int set_elem(mat_t *m, size_t i, size_t j, double val)
 
 int zero_count_row(mat_t *m, size_t row)
 {
-	if (row >= m->row) return -1;
+	if (row >= m->row) 
+		return -1;
 
 	size_t zeroes = 0;
 
@@ -299,7 +350,8 @@ int zero_count_row(mat_t *m, size_t row)
 
 int zero_count_col(mat_t *m, size_t col)
 {
-	if (col >= m->col) return -1;
+	if (col >= m->col) 
+		return -1;
 
 	size_t zeroes = 0;
 
@@ -318,7 +370,8 @@ void free_mat(mat_t *m)
 
 	for (int i = 0; i < m->row; i++)
 	{
-		free(m->elem[i]);
+		if (m->elem + i)
+			free(m->elem[i]);
 	}
 
 	free(m->elem);
@@ -327,7 +380,8 @@ void free_mat(mat_t *m)
 
 void print_mat(mat_t *m)
 {
-	if (!m) return;
+	if (!m) 
+		return;
 
 	for (int i = 0; i < m->row; i++)
 	{
