@@ -69,7 +69,7 @@ mat_t *get_v_col(mat_t *m, size_t col)
 	if (!m_col || m_col->status != NO_MAT_ERROR)	
 		return NULL;
 
-	if (col <= m->col)
+	if (col < m->col)
 	{
 		for (int i = 0; i < m->row; i++)
 		{
@@ -93,11 +93,11 @@ mat_t *get_v_row(mat_t *m, size_t row)
 		return NULL;
 	}
 
-	if (row <= m->row)
+	if (row < m->row)
 	{
 		for (int i = 0; i < m->col; i++)
 		{
-			m->elem[0][i] = m->elem[row][i];
+			m_row->elem[0][i] = m->elem[row][i];
 		}
 	}
 
@@ -154,10 +154,10 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 	return m_result;
 }
 
-void lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
+int lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 {
 	if (!m)
-		return;
+		return -1;
 
 	*m_l = init(m->row, m->row);
 	*m_u = init(m->row, m->col);
@@ -165,7 +165,7 @@ void lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 	if (!*m_l || !*m_u ||
 		(*m_l)->status != NO_MAT_ERROR || 
 		(*m_u)->status != NO_MAT_ERROR)
-		return;
+		return -1;
 
 	for (int i = 0; i < m->col; i++)
 	{
@@ -195,29 +195,54 @@ void lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 			}
 		}
 	}
+
+	return 0;
 }
 
-void gauss_elim(mat_t **m)
+int gauss_jordan_elim(mat_t *m)
 {
-	if (!*m || (*m)->status != NO_MAT_ERROR)
-		return;
+	if (!m || m->status != NO_MAT_ERROR)
+		return -1;
 
-	for (int i = 0; i < (*m)->col; i++)
+	for (int i = 0; i < m->col && i < m->row; i++)
 	{
-		mat_t *rr_mat = eye_mat((*m)->row);
-		
-		for (int j = i + 1; j < (*m)->row; j++)
-		{ 
-			rr_mat->elem[j][i] = ((*m)->elem[j][i]) ? -1*(*m)->elem[j][i]/(*m)->elem[i][i] : 0;
+		mat_t *rr_mat = eye_mat(m->row);
+
+		for (int j = i + 1; j < m->row && !m->elem[i][i]; j++)
+		{
+			if (m->elem[j][i])
+			{
+				//rr_mat->elem[][] = 1;
+			}
 		}
-
-		mat_t *tmp_mat = mat_mult(rr_mat, *m);
-
-		free_mat(*m);
-		free_mat(rr_mat);
-
-		*m = tmp_mat;
 	}
+
+	return 0;
+}
+
+int row_subst(mat_t *m, size_t row_1, size_t row_2)
+{
+	if (!m || m->status != NO_MAT_ERROR)
+		return -1;
+
+	// Faster just to swap the rows through pointers than through an elementary matrix, 
+	// which requires matrix multiplication.
+
+	mat_t *vec_1 = get_v_row(m, row_1), *vec_2 = get_v_row(m, row_2);
+
+	if (vec_1 && vec_2)
+	{
+		for (int i = 0; i < m->col; i++)
+		{
+			m->elem[row_1][i] = vec_2->elem[0][i];
+			m->elem[row_2][i] = vec_1->elem[0][i];
+		}
+	}
+
+	free_mat(vec_1);
+	free_mat(vec_2);
+
+	return 0;
 }
 
 mat_t *inv_u(mat_t *m_u)
@@ -306,22 +331,6 @@ mat_t *inv(mat_t *m_src)
 	return m_inv;
 }
 
-/*mat_op_stat_t det_2_2_mat(double *det, mat_t *m_src)
-{
-	if (m_src->row != m_src->col && m_src->row != 2)
-	{
-		return NOT_SQUARE;
-	}
-
-	if (!det)
-	{
-		return NULL_IMPROPER;
-	}
-
-	*det = (m_src->elem)[0][0]*(m_src->elem)[1][1] - (m_src->elem)[1][0]*(m_src->elem)[0][1];
-	return NO_ERROR;
-}*/
-
 int set_elem(mat_t *m, size_t i, size_t j, double val)
 {
 	if (!m || 
@@ -333,12 +342,36 @@ int set_elem(mat_t *m, size_t i, size_t j, double val)
 	return 0; 
 }
 
-int zero_count_row(mat_t *m, size_t row)
+int check_mat_rref(mat_t *m)
 {
-	if (row >= m->row) 
+	if (!m || m->status != NO_MAT_ERROR)
 		return -1;
 
-	size_t zeroes = 0;
+	for (int i = 0; i < m->row; i++)
+	{
+		int j = 0;
+		
+		for (j = 0; j < m->col; j++)
+		{
+			if (m->elem[i][j])
+				break;
+		}
+
+		if (j != i)
+			return 0;
+	}
+
+	return 1;
+}
+
+int zero_count_row(mat_t *m, size_t row)
+{
+	if (!m ||
+		m->status != NO_MAT_ERROR ||
+		row >= m->row) 
+		return -1;
+
+	int zeroes = 0;
 
 	for (int i = 0; i < m->col; i++)
 	{
@@ -350,10 +383,12 @@ int zero_count_row(mat_t *m, size_t row)
 
 int zero_count_col(mat_t *m, size_t col)
 {
-	if (col >= m->col) 
+	if (!m ||
+		m->status != NO_MAT_ERROR ||
+		col >= m->col) 
 		return -1;
 
-	size_t zeroes = 0;
+	int zeroes = 0;
 
 	for (int i = 0; i < m->row; i++)
 	{

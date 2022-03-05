@@ -11,24 +11,27 @@
 
 int main()
 {
-	mat_t *A = init(4, 4);
+	mat_t *A = init(5, 2);
 
-	set_elem(A, 0, 0, 2);
-	set_elem(A, 0, 1, 1);
-	set_elem(A, 0, 3, 2);
+	set_elem(A, 0, 0, 0);
+	set_elem(A, 0, 1, 0);
 
-	set_elem(A, 1, 0, 8);
+	set_elem(A, 1, 0, 0);
 	set_elem(A, 1, 1, 1);
-	set_elem(A, 1, 2, 1);
 
-	set_elem(A, 2, 0, 2);
+	set_elem(A, 2, 0, 1);
 	set_elem(A, 2, 1, 2);
-	set_elem(A, 2, 3, 7);
 
-	set_elem(A, 3, 0, 2);
+	set_elem(A, 3, 0, 0);
 	set_elem(A, 3, 1, 1);
 
-	gauss_elim(&A);
+	set_elem(A, 4, 0, 1);
+	set_elem(A, 4, 1, 2);
+
+	print_mat(A);
+	printf("\n");
+
+	row_subst(A, 3, 1);
 	print_mat(A);
 
 	free_mat(A);

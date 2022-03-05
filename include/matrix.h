@@ -31,13 +31,15 @@ mat_t *get_v_row(mat_t *, size_t);
 mat_t *mat_transpose(mat_t *);
 mat_t *mat_mult(mat_t *, mat_t *);
 
-void   lu_fact(mat_t **, mat_t **, mat_t *);
-void   gauss_elim(mat_t **);
+int lu_fact(mat_t **, mat_t **, mat_t *);
+int gauss_jordan_elim(mat_t *);
+int row_subst(mat_t *, size_t, size_t);
 
 mat_t *inv_u(mat_t *);
 mat_t *inv_l(mat_t *);
 mat_t *inv(mat_t *);
 
+int check_mat_ref(mat_t *m);
 int set_elem(mat_t *m, size_t i, size_t j, double val);
 int zero_count_row(mat_t *m, size_t row);
 int zero_count_col(mat_t *m, size_t col);
