@@ -31,17 +31,17 @@ int main()
 
 	mat_t *A = init(3, 3);
 
-	set_elem(A, 0, 0, 2);
-	set_elem(A, 0, 1, 1);
-	set_elem(A, 0, 2, 2);
+	set_elem(A, 0, 0,  1);
+	set_elem(A, 0, 1,  0);
+	set_elem(A, 0, 2,  2);
 
-	set_elem(A, 1, 0, 2);
-	set_elem(A, 1, 1, 1);
-	set_elem(A, 1, 2, 2);
+	set_elem(A, 1, 0,  1);
+	set_elem(A, 1, 1,  0);
+	set_elem(A, 1, 2,  2);
 
-	set_elem(A, 2, 0, 1);
-	set_elem(A, 2, 1, 1);
-	set_elem(A, 2, 2, 1);
+	set_elem(A, 2, 0,  3);
+	set_elem(A, 2, 1,  2);
+	set_elem(A, 2, 2,  1);
 	
 	/*mat_t *A = init(5, 2);
 
@@ -98,8 +98,13 @@ int main()
 	set_elem(A, 2, 3, 1);
 	set_elem(A, 2, 4, 8);*/
 
-	print_mat(inv(A));
+	mat_t *x = copy_mat_t(A);
+	gauss_jordan_elim(&x);
+	printf("%d\n", get_rank_ref(x));
+	printf("%d\n", is_full_rank(x));
+
 	free_mat(A);
+	free_mat(x);
 
 	t = clock() - t;
     double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds

@@ -10,10 +10,9 @@
 
 struct mat
 {
-	mat_status_t status;
+	mat_stat_t stat;
 	double **elem;
-	size_t row;
-	size_t col;
+	size_t row, col;
 };
 
 mat_t *init(size_t row, size_t col)
@@ -27,25 +26,49 @@ mat_t *init(size_t row, size_t col)
 	m->col = col;
 
 	m->elem = (double **) calloc(m->row, sizeof(double *));
-	m->status = (!m->elem) ? MAT_MEM_STRUCT_ALLOC_FAIL : NO_MAT_ERROR;
+	m->stat = (!m->elem) ? MAT_MEM_STRUCT_ALLOC_FAIL : NO_MAT_ERROR;
 
-	if (m->status != NO_MAT_ERROR) 
+	if (m->stat != NO_MAT_ERROR) 
 		return m;
 
 	for (int i = 0; i < m->row; i++)
 	{
 		m->elem[i] = (double *) calloc(m->col, sizeof(double));
-		m->status = (!m->elem[i]) ? MAT_MEM_ROW_ALLOC_FAIL : m->status;
+		m->stat = (!m->elem[i]) ? MAT_MEM_ROW_ALLOC_FAIL : m->stat;
 	}
 
 	return m;
+}
+
+mat_t *copy_mat_t(mat_t *m)
+{
+	if (!m || m->stat != NO_MAT_ERROR)
+		return NULL;
+
+	mat_t *copy = init(m->row, m->col);
+	
+	if (!copy || copy->stat != NO_MAT_ERROR)
+	{
+		free_mat(copy);
+		return NULL;
+	}
+
+	for (int i = 0; i < m->row; i++)
+	{
+		for (int j = 0; j < m->col; j++)
+		{
+			copy->elem[i][j] = m->elem[i][j];
+		}
+	}
+
+	return copy;
 }
 
 mat_t *eye_mat(size_t n)
 {
 	mat_t *m = init(n, n);
 
-	if (!m || m->status != NO_MAT_ERROR)
+	if (!m || m->stat != NO_MAT_ERROR)
 	{
 		free_mat(m);
 		return NULL;
@@ -62,14 +85,17 @@ mat_t *eye_mat(size_t n)
 mat_t *get_v_col(mat_t *m, size_t col)
 {
 	if (!m || 
-		m->status != NO_MAT_ERROR ||
+		m->stat != NO_MAT_ERROR ||
 		col >= m->col)	
 		return NULL;
 
 	mat_t *m_col = init(m->row, 1);
 	
-	if (!m_col || m_col->status != NO_MAT_ERROR)	
-		return m_col;
+	if (!m_col || m_col->stat != NO_MAT_ERROR)	
+	{
+		free_mat(m_col);
+		return NULL;
+	}
 
 	for (int i = 0; i < m->row; i++)
 	{
@@ -82,15 +108,16 @@ mat_t *get_v_col(mat_t *m, size_t col)
 mat_t *get_v_row(mat_t *m, size_t row)
 {
 	if (!m || 
-		m->status != NO_MAT_ERROR ||
+		m->stat != NO_MAT_ERROR ||
 		row >= m->row)	
 		return NULL;
 
 	mat_t *m_row = init(1, m->col);
 		
-	if (!m_row || m_row->status != NO_MAT_ERROR)
+	if (!m_row || m_row->stat != NO_MAT_ERROR)
 	{
-		return m_row;
+		free_mat(m_row);
+		return NULL;
 	}
 
 	for (int i = 0; i < m->col; i++)
@@ -103,13 +130,16 @@ mat_t *get_v_row(mat_t *m, size_t row)
 
 mat_t *mat_transpose(mat_t *m)
 {
-	if (!m || m->status != NO_MAT_ERROR)	
+	if (!m || m->stat != NO_MAT_ERROR)	
 		return NULL;
 
 	mat_t *m_transpose = init(m->col, m->row);
 		
-	if (!m_transpose || m_transpose->status != NO_MAT_ERROR)	
+	if (!m_transpose || m_transpose->stat != NO_MAT_ERROR)	
+	{
+		free_mat(m_transpose);
 		return NULL;
+	}
 
 	for (int i = 0; i < m->col; i++)
 	{
@@ -125,15 +155,18 @@ mat_t *mat_transpose(mat_t *m)
 mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 {
 	if (!m_A || !m_B || 
-		m_A->status != NO_MAT_ERROR || 
-		m_B->status != NO_MAT_ERROR || 
+		m_A->stat != NO_MAT_ERROR || 
+		m_B->stat != NO_MAT_ERROR || 
 		m_A->col != m_B->row)
 		return NULL;
 
 	mat_t *m_result = init(m_A->row, m_B->col);
 
-	if (!m_result || m_result->status != NO_MAT_ERROR)	
+	if (!m_result || m_result->stat != NO_MAT_ERROR)	
+	{
+		free_mat(m_result);
 		return NULL;
+	}
 
 	for (int i = 0; i < m_result->row; i++)
 	{
@@ -153,16 +186,24 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 
 int lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 {
-	if (!m)
+	if (!m || m->stat != NO_MAT_ERROR)
 		return -1;
 
 	*m_l = init(m->row, m->row);
 	*m_u = init(m->row, m->col);
 
 	if (!*m_l || !*m_u ||
-		(*m_l)->status != NO_MAT_ERROR || 
-		(*m_u)->status != NO_MAT_ERROR)
+		(*m_l)->stat != NO_MAT_ERROR || 
+		(*m_u)->stat != NO_MAT_ERROR)
+	{
+		free_mat(*m_l);
+		*m_l = NULL;
+
+		free_mat(*m_u);
+		*m_u = NULL;
+
 		return -1;
+	}
 
 	for (int i = 0; i < m->col; i++)
 	{
@@ -198,32 +239,32 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 
 int gauss_jordan_elim(mat_t **m)
 {
+	size_t piv = 0;
+
 	if (!m || !*m || 
-		(*m)->status != NO_MAT_ERROR)
+		(*m)->stat != NO_MAT_ERROR)
 		return -1;
 
-	size_t piv_pos = 0;
-
-	for (int i = 0; i < (*m)->col && piv_pos < (*m)->row; i++)
+	for (int i = 0; i < (*m)->col && piv < (*m)->row; i++)
 	{
 		mat_t *rr_mat = eye_mat((*m)->row);
 
-		for (int j = piv_pos + 1; j < (*m)->row; j++)
+		for (int j = piv + 1; j < (*m)->row; j++)
 		{
-			if ((*m)->elem[j][i] && !(*m)->elem[piv_pos][i])
+			if ((*m)->elem[j][i] && !(*m)->elem[piv][i])
 				row_subst(*m, i, j);
 		}
 
-		for (int j = piv_pos + 1; j < (*m)->row; j++)
+		for (int j = piv + 1; j < (*m)->row; j++)
 		{
-			if ((*m)->elem[j][i] && (*m)->elem[piv_pos][i])
-				rr_mat->elem[j][piv_pos] =-1*((*m)->elem[j][i])/((*m)->elem[piv_pos][i]);
+			if ((*m)->elem[j][i] && (*m)->elem[piv][i])
+				rr_mat->elem[j][piv] =-1*((*m)->elem[j][i])/((*m)->elem[piv][i]);
 		}
 	
 		// If there is not a viable pivot point, save the row and move onto the next column.
 
 		mat_t *tmp_mat = mat_mult(rr_mat, *m);
-		piv_pos += ((*m)->elem[piv_pos][i] != 0);
+		piv += ((*m)->elem[piv][i] != 0);
 
 		free_mat(*m);
 		free_mat(rr_mat);
@@ -236,7 +277,7 @@ int gauss_jordan_elim(mat_t **m)
 
 int row_subst(mat_t *m, size_t row_1, size_t row_2)
 {
-	if (!m || m->status != NO_MAT_ERROR)
+	if (!m || m->stat != NO_MAT_ERROR)
 		return -1;
 
 	// Faster just to swap the rows through pointers than through an elementary matrix, 
@@ -259,16 +300,27 @@ int row_subst(mat_t *m, size_t row_1, size_t row_2)
 	return 0;
 }
 
+int set_elem(mat_t *m, size_t i, size_t j, double val)
+{
+	if (!m || 
+		m->stat != NO_MAT_ERROR ||
+		m->row <= i || m->col <= j)
+		return -1;
+
+	m->elem[i][j] = val;
+	return 0; 
+}
+
 mat_t *inv_u(mat_t *m_u)
 {
 	if (!m_u || 
-		m_u->status != NO_MAT_ERROR || 
+		m_u->stat != NO_MAT_ERROR || 
 		m_u->row != m_u->col)
 		return NULL;
 
 	mat_t *m_u_inv = init(m_u->col, m_u->col);
 	
-	if (!m_u_inv || m_u_inv->status != NO_MAT_ERROR)	
+	if (!m_u_inv || m_u_inv->stat != NO_MAT_ERROR)	
 	{
 		free_mat(m_u_inv);
 		return NULL;
@@ -296,13 +348,13 @@ mat_t *inv_u(mat_t *m_u)
 mat_t *inv_l(mat_t *m_l)
 {
 	if (!m_l || 
-		m_l->status != NO_MAT_ERROR || 
+		m_l->stat != NO_MAT_ERROR || 
 		m_l->row != m_l->col)
 		return NULL;
 
 	mat_t *m_l_inv = init(m_l->col, m_l->col);
 	
-	if (!m_l_inv || m_l_inv->status != NO_MAT_ERROR)
+	if (!m_l_inv || m_l_inv->stat != NO_MAT_ERROR)
 	{
 		free_mat(m_l_inv);	
 		return NULL;
@@ -334,36 +386,21 @@ mat_t *inv(mat_t *m_src)
 	mat_t *m_l = NULL, *m_u = NULL;
 	lu_fact(&m_l, &m_u, m_src);
 
-	print_mat(m_l);
-	printf("\n");
-	print_mat(m_u);
-	printf("\n");
-
 	mat_t *m_inv_u = inv_u(m_u), *m_inv_l = inv_l(m_l);
-	free_mat(m_u);
-	free_mat(m_l);
-
 	mat_t *m_inv = mat_mult(m_inv_u, m_inv_l);
+
+	free_mat(m_u);
 	free_mat(m_inv_u);
+
+	free_mat(m_l);
 	free_mat(m_inv_l);
 
 	return m_inv;
 }
 
-int set_elem(mat_t *m, size_t i, size_t j, double val)
-{
-	if (!m || 
-		m->status != NO_MAT_ERROR ||
-		m->row <= i || m->col <= j)
-		return -1;
-
-	m->elem[i][j] = val;
-	return 0; 
-}
-
 int check_mat_ref(mat_t *m)
 {
-	if (!m || m->status != NO_MAT_ERROR)
+	if (!m || m->stat != NO_MAT_ERROR)
 		return -1;
 
 	for (int i = 0; i < m->row; i++)
@@ -389,10 +426,35 @@ int check_mat_ref(mat_t *m)
 	return 1;
 }
 
+int get_rank_ref(mat_t *m)
+{
+	if (check_mat_ref(m) != 1)
+		return -1;
+
+	int count = 0;
+
+	for (int i = 0; i < m->row; i++)
+	{
+		count += (zero_count_row(m, i) != m->col); 
+	}
+
+	return count;
+}
+
+int is_full_rank(mat_t *m)
+{
+	if (check_mat_ref(m) != 1 || 
+		m->row != m->col)
+		return -1;
+
+	size_t min_num = m->row > m->col ? m->col : m->row;
+	return get_rank_ref(m) == min_num;
+}
+
 int zero_count_row(mat_t *m, size_t row)
 {
 	if (!m ||
-		m->status != NO_MAT_ERROR ||
+		m->stat != NO_MAT_ERROR ||
 		row >= m->row) 
 		return -1;
 
@@ -400,7 +462,7 @@ int zero_count_row(mat_t *m, size_t row)
 
 	for (int i = 0; i < m->col; i++)
 	{
-		zeroes += (m->elem)[row][i] == 0.0;
+		zeroes += !(m->elem)[row][i];
 	}
 
 	return zeroes;
@@ -409,7 +471,7 @@ int zero_count_row(mat_t *m, size_t row)
 int zero_count_col(mat_t *m, size_t col)
 {
 	if (!m ||
-		m->status != NO_MAT_ERROR ||
+		m->stat != NO_MAT_ERROR ||
 		col >= m->col) 
 		return -1;
 
@@ -417,7 +479,7 @@ int zero_count_col(mat_t *m, size_t col)
 
 	for (int i = 0; i < m->row; i++)
 	{
-		zeroes += (m->elem)[i][col] == 0.0;
+		zeroes += !(m->elem)[i][col];
 	}
 
 	return zeroes;
