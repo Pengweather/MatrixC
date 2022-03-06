@@ -61,44 +61,41 @@ mat_t *eye_mat(size_t n)
 
 mat_t *get_v_col(mat_t *m, size_t col)
 {
-	if (!m || m->status != NO_MAT_ERROR)	
+	if (!m || 
+		m->status != NO_MAT_ERROR ||
+		col >= m->col)	
 		return NULL;
 
 	mat_t *m_col = init(m->row, 1);
 	
 	if (!m_col || m_col->status != NO_MAT_ERROR)	
-		return NULL;
+		return m_col;
 
-	if (col < m->col)
+	for (int i = 0; i < m->row; i++)
 	{
-		for (int i = 0; i < m->row; i++)
-		{
-			m_col->elem[i][0] = m->elem[i][col];
-		}
+		m_col->elem[i][0] = m->elem[i][col];
 	}
-
+	
 	return m_col;
 }
 
 mat_t *get_v_row(mat_t *m, size_t row)
 {
-	if (!m || m->status != NO_MAT_ERROR)	
+	if (!m || 
+		m->status != NO_MAT_ERROR ||
+		row >= m->row)	
 		return NULL;
 
 	mat_t *m_row = init(1, m->col);
 		
 	if (!m_row || m_row->status != NO_MAT_ERROR)
 	{
-		free_mat(m_row);
-		return NULL;
+		return m_row;
 	}
 
-	if (row < m->row)
+	for (int i = 0; i < m->col; i++)
 	{
-		for (int i = 0; i < m->col; i++)
-		{
-			m_row->elem[0][i] = m->elem[row][i];
-		}
+		m_row->elem[0][i] = m->elem[row][i];
 	}
 
 	return m_row;
@@ -199,22 +196,39 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 	return 0;
 }
 
-int gauss_jordan_elim(mat_t *m)
+int gauss_jordan_elim(mat_t **m)
 {
-	if (!m || m->status != NO_MAT_ERROR)
+	if (!m || !*m || 
+		(*m)->status != NO_MAT_ERROR)
 		return -1;
 
-	for (int i = 0; i < m->col && i < m->row; i++)
-	{
-		mat_t *rr_mat = eye_mat(m->row);
+	size_t piv_pos = 0;
 
-		for (int j = i + 1; j < m->row && !m->elem[i][i]; j++)
+	for (int i = 0; i < (*m)->col && piv_pos < (*m)->row; i++)
+	{
+		mat_t *rr_mat = eye_mat((*m)->row);
+
+		for (int j = piv_pos + 1; j < (*m)->row; j++)
 		{
-			if (m->elem[j][i])
-			{
-				//rr_mat->elem[][] = 1;
-			}
+			if ((*m)->elem[j][i] && !(*m)->elem[piv_pos][i])
+				row_subst(*m, i, j);
 		}
+
+		for (int j = piv_pos + 1; j < (*m)->row; j++)
+		{
+			if ((*m)->elem[j][i] && (*m)->elem[piv_pos][i])
+				rr_mat->elem[j][piv_pos] =-1*((*m)->elem[j][i])/((*m)->elem[piv_pos][i]);
+		}
+	
+		// If there is not a viable pivot point, save the row and move onto the next column.
+
+		mat_t *tmp_mat = mat_mult(rr_mat, *m);
+		piv_pos += ((*m)->elem[piv_pos][i] != 0);
+
+		free_mat(*m);
+		free_mat(rr_mat);
+
+		*m = tmp_mat;
 	}
 
 	return 0;
@@ -226,7 +240,7 @@ int row_subst(mat_t *m, size_t row_1, size_t row_2)
 		return -1;
 
 	// Faster just to swap the rows through pointers than through an elementary matrix, 
-	// which requires matrix multiplication.
+	// which requires matrix multiplication, at which point the computational cost will increase.
 
 	mat_t *vec_1 = get_v_row(m, row_1), *vec_2 = get_v_row(m, row_2);
 
@@ -320,6 +334,11 @@ mat_t *inv(mat_t *m_src)
 	mat_t *m_l = NULL, *m_u = NULL;
 	lu_fact(&m_l, &m_u, m_src);
 
+	print_mat(m_l);
+	printf("\n");
+	print_mat(m_u);
+	printf("\n");
+
 	mat_t *m_inv_u = inv_u(m_u), *m_inv_l = inv_l(m_l);
 	free_mat(m_u);
 	free_mat(m_l);
@@ -342,7 +361,7 @@ int set_elem(mat_t *m, size_t i, size_t j, double val)
 	return 0; 
 }
 
-int check_mat_rref(mat_t *m)
+int check_mat_ref(mat_t *m)
 {
 	if (!m || m->status != NO_MAT_ERROR)
 		return -1;
@@ -357,8 +376,14 @@ int check_mat_rref(mat_t *m)
 				break;
 		}
 
-		if (j != i)
-			return 0;
+		if (j >= i)
+		{
+			for (int k = i + 1; k < m->row; k++)
+			{
+				if (m->elem[k][j])
+					return 0;
+			}
+		}
 	}
 
 	return 1;

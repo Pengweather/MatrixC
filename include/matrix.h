@@ -32,7 +32,7 @@ mat_t *mat_transpose(mat_t *);
 mat_t *mat_mult(mat_t *, mat_t *);
 
 int lu_fact(mat_t **, mat_t **, mat_t *);
-int gauss_jordan_elim(mat_t *);
+int gauss_jordan_elim(mat_t **);
 int row_subst(mat_t *, size_t, size_t);
 
 mat_t *inv_u(mat_t *);
