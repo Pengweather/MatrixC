@@ -29,19 +29,23 @@ int main()
 	clock_t t;
     t = clock();
 
-	mat_t *A = init(3, 3);
+	mat_t *A = init(2, 2);
 
-	set_elem(A, 0, 0,  1);
-	set_elem(A, 0, 1,  0);
-	set_elem(A, 0, 2,  2);
-
-	set_elem(A, 1, 0,  1);
+	set_elem(A, 0, 0, -2);
+	set_elem(A, 0, 1, -4);
+	
+	set_elem(A, 1, 0,  0);
 	set_elem(A, 1, 1,  0);
-	set_elem(A, 1, 2,  2);
 
-	set_elem(A, 2, 0,  3);
-	set_elem(A, 2, 1,  2);
-	set_elem(A, 2, 2,  1);
+	/*mat_t *A = init(2, 3);
+
+	set_elem(A, 0, 0,  -2);
+	set_elem(A, 0, 1,   1);
+	set_elem(A, 0, 2,   3);
+
+	set_elem(A, 1, 0,  -4);
+	set_elem(A, 1, 1,   4);
+	set_elem(A, 1, 2,   1);*/
 	
 	/*mat_t *A = init(5, 2);
 
@@ -97,6 +101,15 @@ int main()
 	set_elem(A, 2, 2, 7);
 	set_elem(A, 2, 3, 1);
 	set_elem(A, 2, 4, 8);*/
+	print_mat(A);
+	mat_t *l_mat = NULL;
+	mat_t *u_mat = NULL;
+
+	lu_fact(&l_mat, &u_mat, A);
+	print_mat(l_mat);
+	printf("\n");
+	print_mat(u_mat);
+	printf("\n");
 
 	mat_t *x = copy_mat_t(A);
 	gauss_jordan_elim(&x);

@@ -205,7 +205,7 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
 		return -1;
 	}
 
-	for (int i = 0; i < m->col; i++)
+	for (int i = 0; i < m->row; i++)
 	{
 		(*m_u)->elem[0][i] = m->elem[0][i];
 		(*m_l)->elem[i][i] = 1;
@@ -443,12 +443,11 @@ int get_rank_ref(mat_t *m)
 
 int is_full_rank(mat_t *m)
 {
-	if (check_mat_ref(m) != 1 || 
-		m->row != m->col)
+	if (check_mat_ref(m) != 1)
 		return -1;
 
 	size_t min_num = m->row > m->col ? m->col : m->row;
-	return get_rank_ref(m) == min_num;
+	return (m->row == m->col) && get_rank_ref(m) == min_num;
 }
 
 int zero_count_row(mat_t *m, size_t row)
