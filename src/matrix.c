@@ -184,93 +184,97 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 	return m_result;
 }
 
-int lu_fact(mat_t **m_l, mat_t **m_u, mat_t *m)
+static void get_u_unpivoted(mat_t **m_u, mat_t *m)
 {
-	if (!m || m->stat != NO_MAT_ERROR)
-		return -1;
+	*m_u = copy_mat_t(m);
 
-	*m_l = init(m->row, m->row);
-	*m_u = init(m->row, m->col);
-
-	if (!*m_l || !*m_u ||
-		(*m_l)->stat != NO_MAT_ERROR || 
-		(*m_u)->stat != NO_MAT_ERROR)
+	if (!*m_u || (*m_u)->stat != NO_MAT_ERROR)
 	{
-		free_mat(*m_l);
-		*m_l = NULL;
-
 		free_mat(*m_u);
 		*m_u = NULL;
 
-		return -1;
+		return;
 	}
 
-	for (int i = 0; i < m->row; i++)
-	{
-		(*m_u)->elem[0][i] = m->elem[0][i];
-		(*m_l)->elem[i][i] = 1;
-		(*m_l)->elem[i][0] = m->elem[i][0]/m->elem[0][0];
-
-		for (int j = 1; j < i; j++)
-		{
-			(*m_l)->elem[i][j] = m->elem[i][j];
-
-			for (int k = 0; k < j; k++)
-			{
-				(*m_l)->elem[i][j] -= (*m_l)->elem[i][k]*(*m_u)->elem[k][j];
-			}
-
-			(*m_l)->elem[i][j] = (*m_l)->elem[i][j]/(*m_u)->elem[j][j];
-		}
-
-		for (int j = i; j < m->col; j++)
-		{
-			(*m_u)->elem[i][j] = m->elem[i][j];
-
-			for (int k = 0; k < i; k++)
-			{
-				(*m_u)->elem[i][j] -= (*m_l)->elem[i][k]*(*m_u)->elem[k][j];
-			}
-		}
-	}
-
-	return 0;
-}
-
-int gauss_jordan_elim(mat_t **m)
-{
 	size_t piv = 0;
 
-	if (!m || !*m || 
-		(*m)->stat != NO_MAT_ERROR)
-		return -1;
-
-	for (int i = 0; i < (*m)->col && piv < (*m)->row; i++)
+	for (int i = 0; i < (*m_u)->col && piv < (*m_u)->row; i++)
 	{
-		mat_t *rr_mat = eye_mat((*m)->row);
+		mat_t *rr_mat = eye_mat((*m_u)->row);
 
-		for (int j = piv + 1; j < (*m)->row; j++)
+		for (int j = piv + 1; j < (*m_u)->row; j++)
 		{
-			if ((*m)->elem[j][i] && !(*m)->elem[piv][i])
-				row_subst(*m, i, j);
+			if ((*m_u)->elem[j][i] && !(*m_u)->elem[piv][i])
+				row_subst(*m_u, i, j);
 		}
 
-		for (int j = piv + 1; j < (*m)->row; j++)
+		for (int j = piv + 1; j < (*m_u)->row; j++)
 		{
-			if ((*m)->elem[j][i] && (*m)->elem[piv][i])
-				rr_mat->elem[j][piv] =-1*((*m)->elem[j][i])/((*m)->elem[piv][i]);
+			if ((*m_u)->elem[j][i] && (*m_u)->elem[piv][i])
+				rr_mat->elem[j][piv] =-1*((*m_u)->elem[j][i])/((*m_u)->elem[piv][i]);
 		}
 	
 		// If there is not a viable pivot point, save the row and move onto the next column.
 
-		mat_t *tmp_mat = mat_mult(rr_mat, *m);
-		piv += ((*m)->elem[piv][i] != 0);
+		mat_t *tmp_mat = mat_mult(rr_mat, *m_u);
+		piv += ((*m_u)->elem[piv][i] != 0);
 
-		free_mat(*m);
+		free_mat(*m_u);
 		free_mat(rr_mat);
 
-		*m = tmp_mat;
+		*m_u = tmp_mat;
 	}
+}
+
+static void get_l_unpivoted(mat_t **m_l, mat_t **m_u, mat_t *m)
+{
+	*m_l = eye_mat(m->row);
+
+	if (!*m_l || (*m_l)->stat != NO_MAT_ERROR)
+	{
+		free_mat(*m_l);
+		*m_l = NULL;
+
+		return;
+	}
+
+	for (int i = 1; i < m->row; i++)
+	{
+		size_t piv = 0;
+
+		for (int j = 0; j < i; j++)
+		{
+			while (piv < m->col && !(*m_u)->elem[j][piv])
+				piv++;
+
+			double val = m->elem[i][piv];
+			
+			for (int k = 0; k < m->row; k++)
+			{
+				val -= (*m_l)->elem[i][k]*(*m_u)->elem[k][piv];
+			}
+
+			(*m_l)->elem[i][j] = val/(*m_u)->elem[j][piv];
+			piv++;
+		}
+	}
+}
+
+mat_t *gauss_elim(mat_t *m)
+{
+	mat_t *m_u = NULL;
+	get_u_unpivoted(&m_u, m);
+
+	return m_u;
+}
+
+int lu_fact_unpivoted(mat_t **m_l, mat_t **m_u, mat_t *m)
+{
+	if (!m || m->stat != NO_MAT_ERROR)
+		return -1;
+	
+	get_u_unpivoted(m_u, m);
+	get_l_unpivoted(m_l, m_u, m);
 
 	return 0;
 }
@@ -378,13 +382,13 @@ mat_t *inv_l(mat_t *m_l)
 	return m_l_inv;
 }
 
-mat_t *inv(mat_t *m_src)
+mat_t *inv(mat_t *m)
 {
-	if (m_src->row != m_src->col)
+	if (m->row != m->col)
 		return NULL;
 
 	mat_t *m_l = NULL, *m_u = NULL;
-	lu_fact(&m_l, &m_u, m_src);
+	lu_fact_unpivoted(&m_l, &m_u, m);
 
 	mat_t *m_inv_u = inv_u(m_u), *m_inv_l = inv_l(m_l);
 	mat_t *m_inv = mat_mult(m_inv_u, m_inv_l);
@@ -398,7 +402,7 @@ mat_t *inv(mat_t *m_src)
 	return m_inv;
 }
 
-int check_mat_ref(mat_t *m)
+int is_mat_ref(mat_t *m)
 {
 	if (!m || m->stat != NO_MAT_ERROR)
 		return -1;
@@ -428,7 +432,7 @@ int check_mat_ref(mat_t *m)
 
 int get_rank_ref(mat_t *m)
 {
-	if (check_mat_ref(m) != 1)
+	if (is_mat_ref(m) != 1)
 		return -1;
 
 	int count = 0;
@@ -443,7 +447,7 @@ int get_rank_ref(mat_t *m)
 
 int is_full_rank(mat_t *m)
 {
-	if (check_mat_ref(m) != 1)
+	if (is_mat_ref(m) != 1)
 		return -1;
 
 	size_t min_num = m->row > m->col ? m->col : m->row;

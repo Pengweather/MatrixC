@@ -25,22 +25,22 @@ typedef enum
 
 typedef struct mat mat_t;
 
-mat_t *init(size_t, size_t);
-mat_t *eye_mat(size_t);
-mat_t *copy_mat_t(mat_t *);
-mat_t *get_v_col(mat_t *, size_t);
-mat_t *get_v_row(mat_t *, size_t);
-mat_t *mat_transpose(mat_t *);
-mat_t *mat_mult(mat_t *, mat_t *);
+mat_t *init(size_t row, size_t col);
+mat_t *eye_mat(size_t n);
+mat_t *copy_mat_t(mat_t *m);
+mat_t *get_v_col(mat_t *m, size_t col);
+mat_t *get_v_row(mat_t *m, size_t row);
+mat_t *mat_transpose(mat_t *m);
+mat_t *mat_mult(mat_t *m_A, mat_t *m_B);
+mat_t *gauss_elim(mat_t *m);
 
-int lu_fact(mat_t **, mat_t **, mat_t *);
-int gauss_jordan_elim(mat_t **);
+int lu_fact_unpivoted(mat_t **m_l, mat_t **m_u, mat_t *m);
 int row_subst(mat_t *, size_t, size_t);
 int set_elem(mat_t *m, size_t i, size_t j, double val);
 
-mat_t *inv_u(mat_t *);
-mat_t *inv_l(mat_t *);
-mat_t *inv(mat_t *);
+mat_t *inv_u(mat_t *m);
+mat_t *inv_l(mat_t *m);
+mat_t *inv(mat_t *m);
 
 int is_mat_ref(mat_t *m);
 int get_rank_ref(mat_t *m);
