@@ -15,7 +15,7 @@ struct mat
 	size_t row, col;
 };
 
-mat_t *init(size_t row, size_t col)
+mat_t *zero_mat(size_t row, size_t col)
 {
 	mat_t *m = (mat_t *) malloc(sizeof(mat_t));
 	
@@ -40,12 +40,12 @@ mat_t *init(size_t row, size_t col)
 	return m;
 }
 
-mat_t *copy_mat_t(mat_t *m)
+mat_t *copy_mat(mat_t *m)
 {
 	if (!m || m->stat != NO_MAT_ERROR)
 		return NULL;
 
-	mat_t *copy = init(m->row, m->col);
+	mat_t *copy = zero_mat(m->row, m->col);
 	
 	if (!copy || copy->stat != NO_MAT_ERROR)
 	{
@@ -66,7 +66,7 @@ mat_t *copy_mat_t(mat_t *m)
 
 mat_t *eye_mat(size_t n)
 {
-	mat_t *m = init(n, n);
+	mat_t *m = zero_mat(n, n);
 
 	if (!m || m->stat != NO_MAT_ERROR)
 	{
@@ -89,7 +89,7 @@ mat_t *get_v_col(mat_t *m, size_t col)
 		col >= m->col)	
 		return NULL;
 
-	mat_t *m_col = init(m->row, 1);
+	mat_t *m_col = zero_mat(m->row, 1);
 	
 	if (!m_col || m_col->stat != NO_MAT_ERROR)	
 	{
@@ -112,7 +112,7 @@ mat_t *get_v_row(mat_t *m, size_t row)
 		row >= m->row)	
 		return NULL;
 
-	mat_t *m_row = init(1, m->col);
+	mat_t *m_row = zero_mat(1, m->col);
 		
 	if (!m_row || m_row->stat != NO_MAT_ERROR)
 	{
@@ -133,7 +133,7 @@ mat_t *mat_transpose(mat_t *m)
 	if (!m || m->stat != NO_MAT_ERROR)	
 		return NULL;
 
-	mat_t *m_transpose = init(m->col, m->row);
+	mat_t *m_transpose = zero_mat(m->col, m->row);
 		
 	if (!m_transpose || m_transpose->stat != NO_MAT_ERROR)	
 	{
@@ -160,7 +160,7 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 		m_A->col != m_B->row)
 		return NULL;
 
-	mat_t *m_result = init(m_A->row, m_B->col);
+	mat_t *m_result = zero_mat(m_A->row, m_B->col);
 
 	if (!m_result || m_result->stat != NO_MAT_ERROR)	
 	{
@@ -184,97 +184,87 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 	return m_result;
 }
 
-static void get_u_unpivoted(mat_t **m_u, mat_t *m)
+mat_t *mat_mult_n(size_t n_mat, ...)
 {
-	*m_u = copy_mat_t(m);
+	va_list ap;
+	va_start(ap, n_mat);
 
-	if (!*m_u || (*m_u)->stat != NO_MAT_ERROR)
+	mat_t *m_tmp = NULL, *m_result = NULL;
+
+	for (int i = 0; i < n_mat - 1; i++)
 	{
-		free_mat(*m_u);
-		*m_u = NULL;
+		m_tmp = (!i) ? va_arg(ap, mat_t *) : copy_mat(m_result);
+		mat_t *m_B = va_arg(ap, mat_t *);
 
-		return;
+		free_mat(m_result);
+		m_result = mat_mult(m_tmp, m_B);
+		
+		if (i) 
+			free_mat(m_tmp);
+
+		if (!m_result)
+			break;
 	}
 
-	size_t piv = 0;
-
-	for (int i = 0; i < (*m_u)->col && piv < (*m_u)->row; i++)
-	{
-		mat_t *rr_mat = eye_mat((*m_u)->row);
-
-		for (int j = piv + 1; j < (*m_u)->row; j++)
-		{
-			if ((*m_u)->elem[j][i] && !(*m_u)->elem[piv][i])
-				row_subst(*m_u, i, j);
-		}
-
-		for (int j = piv + 1; j < (*m_u)->row; j++)
-		{
-			if ((*m_u)->elem[j][i] && (*m_u)->elem[piv][i])
-				rr_mat->elem[j][piv] =-1*((*m_u)->elem[j][i])/((*m_u)->elem[piv][i]);
-		}
-	
-		// If there is not a viable pivot point, save the row and move onto the next column.
-
-		mat_t *tmp_mat = mat_mult(rr_mat, *m_u);
-		piv += ((*m_u)->elem[piv][i] != 0);
-
-		free_mat(*m_u);
-		free_mat(rr_mat);
-
-		*m_u = tmp_mat;
-	}
-}
-
-static void get_l_unpivoted(mat_t **m_l, mat_t **m_u, mat_t *m)
-{
-	*m_l = eye_mat(m->row);
-
-	if (!*m_l || (*m_l)->stat != NO_MAT_ERROR)
-	{
-		free_mat(*m_l);
-		*m_l = NULL;
-
-		return;
-	}
-
-	for (int i = 1; i < m->row; i++)
-	{
-		size_t piv = 0;
-
-		for (int j = 0; j < i; j++)
-		{
-			while (piv < m->col && !(*m_u)->elem[j][piv])
-				piv++;
-
-			double val = m->elem[i][piv];
-			
-			for (int k = 0; k < m->row; k++)
-			{
-				val -= (*m_l)->elem[i][k]*(*m_u)->elem[k][piv];
-			}
-
-			(*m_l)->elem[i][j] = val/(*m_u)->elem[j][piv];
-			piv++;
-		}
-	}
+	return m_result;
 }
 
 mat_t *gauss_elim(mat_t *m)
 {
-	mat_t *m_u = NULL;
-	get_u_unpivoted(&m_u, m);
+	mat_t *m_u = copy_mat(m);
+
+	if (!m_u || m_u->stat != NO_MAT_ERROR)
+		return m_u;
+
+	size_t piv = 0;
+
+	for (int i = 0; i < m_u->col && piv < m_u->row; i++)
+	{
+		mat_t *rr_mat = eye_mat(m_u->row);
+
+		for (int j = piv + 1; j < m_u->row; j++)
+		{
+			if (m_u->elem[j][i] && !m_u->elem[piv][i])
+				row_subst(m_u, i, j);
+		}
+
+		for (int j = piv + 1; j < m_u->row; j++)
+		{
+			if (m_u->elem[j][i] && m_u->elem[piv][i])
+				rr_mat->elem[j][piv] =-1*(m_u->elem[j][i])/(m_u->elem[piv][i]);
+		}
+	
+		// If there is not a viable pivot point, save the row and move onto the next column.
+
+		mat_t *tmp_mat = mat_mult(rr_mat, m_u);
+		piv += m_u->elem[piv][i] != 0;
+
+		free_mat(m_u);
+		free_mat(rr_mat);
+
+		m_u = tmp_mat;
+	}
 
 	return m_u;
 }
 
-int lu_fact_unpivoted(mat_t **m_l, mat_t **m_u, mat_t *m)
+int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m)
 {
 	if (!m || m->stat != NO_MAT_ERROR)
 		return -1;
 	
-	get_u_unpivoted(m_u, m);
-	get_l_unpivoted(m_l, m_u, m);
+	*m_l = eye_mat(m->row);
+	*m_u = zero_mat(m->row, m->col);
+	*m_p = eye_mat(m->row);
+
+	if (!*m_l || (*m_l)->stat != NO_MAT_ERROR || 
+		!*m_u || (*m_u)->stat != NO_MAT_ERROR ||
+		!*m_l || (*m_l)->stat != NO_MAT_ERROR)
+	{
+		return -1;
+	}
+
+	size_t piv = 0;
 
 	return 0;
 }
@@ -322,7 +312,7 @@ mat_t *inv_u(mat_t *m_u)
 		m_u->row != m_u->col)
 		return NULL;
 
-	mat_t *m_u_inv = init(m_u->col, m_u->col);
+	mat_t *m_u_inv = zero_mat(m_u->col, m_u->col);
 	
 	if (!m_u_inv || m_u_inv->stat != NO_MAT_ERROR)	
 	{
@@ -356,7 +346,7 @@ mat_t *inv_l(mat_t *m_l)
 		m_l->row != m_l->col)
 		return NULL;
 
-	mat_t *m_l_inv = init(m_l->col, m_l->col);
+	mat_t *m_l_inv = zero_mat(m_l->col, m_l->col);
 	
 	if (!m_l_inv || m_l_inv->stat != NO_MAT_ERROR)
 	{
@@ -387,11 +377,11 @@ mat_t *inv(mat_t *m)
 	if (m->row != m->col)
 		return NULL;
 
-	mat_t *m_l = NULL, *m_u = NULL;
-	lu_fact_unpivoted(&m_l, &m_u, m);
+	mat_t *m_l = NULL, *m_u = NULL, *m_p = NULL;
+	lu_fact(&m_l, &m_u, &m_p, m);
 
 	mat_t *m_inv_u = inv_u(m_u), *m_inv_l = inv_l(m_l);
-	mat_t *m_inv = mat_mult(m_inv_u, m_inv_l);
+	mat_t *m_inv = mat_mult_n(3, m_inv_u, m_inv_l, m_p);
 
 	free_mat(m_u);
 	free_mat(m_inv_u);
@@ -451,7 +441,7 @@ int is_full_rank(mat_t *m)
 		return -1;
 
 	size_t min_num = m->row > m->col ? m->col : m->row;
-	return (m->row == m->col) && get_rank_ref(m) == min_num;
+	return m->row == m->col && get_rank_ref(m) == min_num;
 }
 
 int zero_count_row(mat_t *m, size_t row)
