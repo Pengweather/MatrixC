@@ -32,9 +32,14 @@ mat_t *copy_mat(mat_t *m);
 mat_t *get_v_col(mat_t *m, size_t col);
 mat_t *get_v_row(mat_t *m, size_t row);
 mat_t *mat_transpose(mat_t *m);
+
 mat_t *mat_mult(mat_t *m_A, mat_t *m_B);
-mat_t *mat_mult_n(size_t n_mat, ...);
+mat_t *mat_add(mat_t *m_A, mat_t *m_B);
+mat_t *mat_scaler(mat_t *m_A, double a);
 mat_t *gauss_elim(mat_t *m);
+
+typedef mat_t *(*mat_bin_op_t)(mat_t *, mat_t *);
+mat_t *mat_op_n(mat_bin_op_t f, size_t n_mat, ...);
 
 int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m);
 int row_subst(mat_t *, size_t row_1, size_t row_2);

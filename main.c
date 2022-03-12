@@ -119,7 +119,7 @@ void test(void)
 	printf("\n");
 	print_mat(u_mat);
 	printf("\n");
-	print_mat(mat_mult_n(2, l_mat, u_mat));
+	print_mat(mat_op_n(mat_mult, 2, l_mat, u_mat));
 
 	printf("%d\n", get_rank_ref(u_mat));
 	printf("%d\n", is_full_rank(u_mat));
@@ -160,7 +160,7 @@ int main()
 	set_elem(B, 2, 1, 0);
 	set_elem(B, 2, 2, -3);
 
-	mat_t *C = zero_mat(2, 3);
+	mat_t *C = zero_mat(3, 3);
 
 	set_elem(C, 0, 0, 0);
 	set_elem(C, 0, 1, 0);
@@ -174,7 +174,7 @@ int main()
 	set_elem(C, 2, 1, 0);
 	set_elem(C, 2, 2, -3);
 
-	mat_t *m_result = mat_mult_n(3, A, B, C);
+	mat_t *m_result = mat_op_n(mat_mult, 3, A, B, C);
 	print_mat(m_result);
 	
 	free_mat(m_result);

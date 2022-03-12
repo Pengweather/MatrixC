@@ -184,7 +184,59 @@ mat_t *mat_mult(mat_t *m_A, mat_t *m_B)
 	return m_result;
 }
 
-mat_t *mat_mult_n(size_t n_mat, ...)
+mat_t *mat_add(mat_t *m_A, mat_t *m_B)
+{
+	if (!m_A || !m_B || 
+		m_A->stat != NO_MAT_ERROR || 
+		m_B->stat != NO_MAT_ERROR || 
+		m_A->col != m_B->col ||
+		m_A->row != m_B->row)
+		return NULL;
+
+	mat_t *m_result = zero_mat(m_A->row, m_A->col);
+
+	if (!m_result || m_result->stat != NO_MAT_ERROR)	
+	{
+		free_mat(m_result);
+		return NULL;
+	}
+
+	for (int i = 0; i < m_result->row; i++)
+	{
+		for (int j = 0; j < m_result->col; j++)
+		{
+			m_result->elem[i][j] = m_A->elem[i][j] + m_B->elem[i][j];
+		}
+	}
+
+	return m_result;
+}
+
+mat_t *mat_scaler(mat_t *m_A, double a)
+{
+	if (!m_A || m_A->stat != NO_MAT_ERROR)
+		return NULL;
+	
+	mat_t *m_result = zero_mat(m_A->row, m_A->col);
+
+	if (!m_result || m_result->stat != NO_MAT_ERROR)	
+	{
+		free_mat(m_result);
+		return NULL;
+	}
+
+	for (int i = 0; i < m_result->row; i++)
+	{
+		for (int j = 0; j < m_result->col; j++)
+		{
+			m_result->elem[i][j] = a*m_A->elem[i][j];
+		}
+	}
+
+	return m_result;
+}
+
+mat_t *mat_op_n(mat_bin_op_t f, size_t n_mat, ...)
 {
 	va_list ap;
 	va_start(ap, n_mat);
@@ -197,7 +249,7 @@ mat_t *mat_mult_n(size_t n_mat, ...)
 		mat_t *m_B = va_arg(ap, mat_t *);
 
 		free_mat(m_result);
-		m_result = mat_mult(m_tmp, m_B);
+		m_result = f(m_tmp, m_B);
 		
 		if (i) 
 			free_mat(m_tmp);
@@ -381,14 +433,15 @@ mat_t *inv(mat_t *m)
 	lu_fact(&m_l, &m_u, &m_p, m);
 
 	mat_t *m_inv_u = inv_u(m_u), *m_inv_l = inv_l(m_l);
-	mat_t *m_inv = mat_mult_n(3, m_inv_u, m_inv_l, m_p);
-
-	free_mat(m_u);
-	free_mat(m_inv_u);
+	mat_t *m_inv = mat_op_n(mat_mult, 3, m_inv_u, m_inv_l, m_p);
 
 	free_mat(m_l);
 	free_mat(m_inv_l);
 
+	free_mat(m_u);
+	free_mat(m_inv_u);
+
+	free_mat(m_p);
 	return m_inv;
 }
 
