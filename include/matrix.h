@@ -31,8 +31,12 @@ mat_t *eye_mat(size_t n);
 mat_t *copy_mat(mat_t *m);
 mat_t *get_v_col(mat_t *m, size_t col);
 mat_t *get_v_row(mat_t *m, size_t row);
-mat_t *mat_transpose(mat_t *m);
 
+/**
+ * Matrix operations
+ */
+
+mat_t *mat_transpose(mat_t *m);
 mat_t *mat_mult(mat_t *m_A, mat_t *m_B);
 mat_t *mat_add(mat_t *m_A, mat_t *m_B);
 mat_t *mat_scaler(mat_t *m_A, double a);

@@ -328,8 +328,14 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m)
 		{
 			if ((*m_u)->elem[i][piv_u_col])
 			{
-				row_subst(*m_p, piv_row, i);
+				row_subst(*m_l, piv_row, i);
 				row_subst(*m_u, piv_row, i);
+				row_subst(*m_p, piv_row, i);
+						
+				(*m_l)->elem[piv_row][piv_row] = 1;
+				(*m_l)->elem[piv_row][i] = 0;
+				(*m_l)->elem[i][i] = 1;
+				(*m_l)->elem[i][piv_row] = 0;
 
 				break;
 			}
@@ -351,7 +357,7 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m)
 			piv_l_col++;
 			piv_row++;
 		}
-		
+
 		piv_u_col++;
 	}
 
