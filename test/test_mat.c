@@ -266,6 +266,8 @@ mat_t *test_11(void)
 	set_elem(A, 4, 1,  3);
 	set_elem(A, 4, 2,  3);
 	set_elem(A, 4, 3,  4);
+
+    return A;
 }
 
 mat_t *test_12(void)
