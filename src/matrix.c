@@ -324,17 +324,14 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m)
 	{
 		size_t i = piv_row + 1;
 
-		if (!(*m_u)->elem[piv_row][piv_u_col])
+		for (i; i < (*m_u)->row && !(*m_u)->elem[piv_row][piv_u_col]; i++)
 		{
-			for (i; i < (*m_u)->row; i++)
+			if ((*m_u)->elem[i][piv_u_col])
 			{
-				if ((*m_u)->elem[i][piv_u_col])
-				{
-					row_subst(*m_p, piv_row, i);
-					row_subst(*m_u, piv_row, i);
+				row_subst(*m_p, piv_row, i);
+				row_subst(*m_u, piv_row, i);
 
-					break;
-				}
+				break;
 			}
 		}
 
