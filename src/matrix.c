@@ -5,6 +5,7 @@
  *      Author: andy
  */
 
+#include <stdbool.h>
 #include "matrix.h"
 #include <stdlib.h>
 
@@ -306,17 +307,56 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m)
 		return -1;
 	
 	*m_l = eye_mat(m->row);
-	*m_u = zero_mat(m->row, m->col);
 	*m_p = eye_mat(m->row);
+	*m_u = copy_mat(m);
 
 	if (!*m_l || (*m_l)->stat != NO_MAT_ERROR || 
 		!*m_u || (*m_u)->stat != NO_MAT_ERROR ||
-		!*m_l || (*m_l)->stat != NO_MAT_ERROR)
+		!*m_p || (*m_p)->stat != NO_MAT_ERROR)
 	{
 		return -1;
 	}
 
-	size_t piv = 0;
+	size_t piv_u_col = 0, piv_l_col = 0;
+	size_t piv_row = 0;
+
+	while (piv_u_col < (*m_u)->col)
+	{
+		size_t i = piv_row + 1;
+
+		if (!(*m_u)->elem[piv_row][piv_u_col])
+		{
+			for (i; i < (*m_u)->row; i++)
+			{
+				if ((*m_u)->elem[i][piv_u_col])
+				{
+					row_subst(*m_p, piv_row, i);
+					row_subst(*m_u, piv_row, i);
+
+					break;
+				}
+			}
+		}
+
+		if (i < (*m_u)->row)
+		{
+			for (int j = piv_row + 1; j < (*m_l)->row; j++)
+			{
+				(*m_l)->elem[j][piv_l_col] = (*m_u)->elem[j][piv_u_col]/(*m_u)->elem[piv_row][piv_u_col];
+				(*m_u)->elem[j][piv_u_col] = 0;
+
+				for (int k = piv_u_col + 1; k < (*m_u)->col; k++)
+				{
+					(*m_u)->elem[j][k] -= (*m_l)->elem[j][piv_l_col]*(*m_u)->elem[piv_row][k];
+				}
+			}
+			
+			piv_l_col++;
+			piv_row++;
+		}
+		
+		piv_u_col++;
+	}
 
 	return 0;
 }
