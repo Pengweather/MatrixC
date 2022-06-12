@@ -291,10 +291,8 @@ mat_t *gauss_elim(mat_t *m)
 
 		mat_t *tmp_mat = mat_mult(rr_mat, m_u);
 		piv += m_u->elem[piv][i] != 0;
-
-		free_mat(m_u);
-		free_mat(rr_mat);
-
+		
+		free_mat_n(2, m_u, rr_mat);
 		m_u = tmp_mat;
 	}
 
@@ -383,9 +381,7 @@ int row_subst(mat_t *m, size_t row_1, size_t row_2)
 		}
 	}
 
-	free_mat(vec_1);
-	free_mat(vec_2);
-
+	free_mat_n(2, vec_1, vec_2);
 	return 0;
 }
 
@@ -478,13 +474,7 @@ mat_t *inv(mat_t *m)
 	mat_t *m_inv_u = inv_u(m_u), *m_inv_l = inv_l(m_l);
 	mat_t *m_inv = mat_op_n(mat_mult, 3, m_inv_u, m_inv_l, m_p);
 
-	free_mat(m_l);
-	free_mat(m_inv_l);
-
-	free_mat(m_u);
-	free_mat(m_inv_u);
-
-	free_mat(m_p);
+	free_mat_n(5, m_l, m_inv_l, m_u, m_inv_u, m_p);
 	return m_inv;
 }
 
@@ -587,6 +577,19 @@ void free_mat(mat_t *m)
 
 	free(m->elem);
 	free(m);
+}
+
+void free_mat_n(size_t n, ...)
+{
+	va_list m_list;
+	va_start(m_list, n);
+
+	for (int i = 0; i < n; i++)
+	{
+		free_mat(va_arg(m_list, mat_t *));
+	}
+
+	va_end(m_list);
 }
 
 void print_mat(mat_t *m)

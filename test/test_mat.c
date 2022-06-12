@@ -34,6 +34,8 @@ mat_t *test_2(void)
 	set_elem(A, 2, 0,  1);
 	set_elem(A, 2, 1,  0);
 	set_elem(A, 2, 2, -3);
+
+	return A;
 }
 
 mat_t *test_3(void)

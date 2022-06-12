@@ -64,6 +64,7 @@ int zero_count_col(mat_t *m, size_t col);
  */
 
 void free_mat(mat_t *);
+void free_mat_n(size_t n, ...);
 
 /**
  * Diagnostics
