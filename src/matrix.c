@@ -5,9 +5,7 @@
  *      Author: andy
  */
 
-#include <stdbool.h>
 #include "matrix.h"
-#include <stdlib.h>
 
 struct mat
 {
@@ -127,6 +125,27 @@ mat_t *get_v_row(mat_t *m, size_t row)
 	}
 
 	return m_row;
+}
+
+int set_elem(mat_t *m, size_t i, size_t j, double val)
+{
+	if (!m || 
+		m->stat != NO_MAT_ERROR ||
+		m->row <= i || m->col <= j)
+		return -1;
+
+	m->elem[i][j] = val;
+	return 0; 
+}
+
+double get_elem(mat_t *m, size_t i, size_t j)
+{
+	if (!m || 
+		m->stat != NO_MAT_ERROR ||
+		m->row <= i || m->col <= j)
+		return -1;
+
+	return m->elem[i][j]; 
 }
 
 mat_t *mat_transpose(mat_t *m)
@@ -315,8 +334,7 @@ int lu_fact(mat_t **m_l, mat_t **m_u, mat_t **m_p, mat_t *m)
 		return -1;
 	}
 
-	size_t piv_u_col = 0, piv_l_col = 0;
-	size_t piv_row = 0;
+	size_t piv_u_col = 0, piv_l_col = 0, piv_row = 0;
 
 	while (piv_u_col < (*m_u)->col)
 	{
@@ -383,17 +401,6 @@ int row_subst(mat_t *m, size_t row_1, size_t row_2)
 
 	free_mat_n(2, vec_1, vec_2);
 	return 0;
-}
-
-int set_elem(mat_t *m, size_t i, size_t j, double val)
-{
-	if (!m || 
-		m->stat != NO_MAT_ERROR ||
-		m->row <= i || m->col <= j)
-		return -1;
-
-	m->elem[i][j] = val;
-	return 0; 
 }
 
 mat_t *inv_u(mat_t *m_u)
@@ -562,6 +569,33 @@ int zero_count_col(mat_t *m, size_t col)
 	}
 
 	return zeroes;
+}
+
+// Potentially replace the function arguments with the following:
+// mat_prop_t get_det(mat_t *m, double *det)
+
+double get_det(mat_t *m)
+{
+	if (!m || 
+		m->col != m->row)
+		return 0;
+
+	// Turn matrix into reduced-echleon form for less computation
+	mat_t *m_l = NULL, *m_u = NULL, *m_p = NULL;
+	lu_fact(&m_l, &m_u, &m_p, m);
+
+	mat_t *m_p_inv = mat_transpose(m_p);
+	double det = 1.0;
+	int match = m->col;
+
+	for (int i = 0; i < m->col; i++)
+	{
+		match -= (get_elem(m_p_inv, i, i) == 1.0);
+		det *= get_elem(m_u, i, i) * get_elem(m_l, i, i); 
+	}
+
+	free_mat_n(4, m_l, m_u, m_p, m_p_inv);
+	return pow(-1.0, match == 0 ? 0 : match - 1) * det;	
 }
 
 void free_mat(mat_t *m)
